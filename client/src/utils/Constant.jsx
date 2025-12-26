@@ -1,1 +1,1 @@
-export const API_URL = "https://improved-train-rxqwp5jp4w5cwq9x-8000.app.github.dev";
+export const API_URL = `${import.meta.env.VITE_BACKEND_URL}`;
