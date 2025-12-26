@@ -1,17 +1,12 @@
-const {
-  login,
-  register,
-  getAllUsers,
-  setAvatar,
-  logOut,
-} = require("../controllers/userController");
+const express = require("express");
+const router = express.Router();
 
-const router = require("express").Router();
+const { postSignup, postLogin, logOut } = require("../controllers/auth.js");
+const { signupValidator, loginValidator } = require("../validators/auth.js");
+const isAuth = require("../middlewares/is-Auth.js");
 
-router.post("/login", login);
-router.post("/register", register);
-router.get("/allusers/:id", getAllUsers);
-router.post("/setavatar/:id", setAvatar);
-router.get("/logout/:id", logOut);
+router.post("/signup", signupValidator, postSignup);
+router.post("/login", loginValidator, postLogin);
+router.post("/logout/:id", isAuth, logOut);
 
 module.exports = router;

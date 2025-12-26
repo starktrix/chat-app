@@ -1,76 +1,76 @@
-import React, { useEffect, useState, useRef } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { allUsersRoute, host } from "../utils/APIRoutes";
-import ChatContainer from "../components/ChatContainer";
-import Contacts from "../components/Contacts";
-import Welcome from "../components/Welcome";
+
+import Users from "../features/chat/Users";
+import Container from "../features/chat/Container";
+import { useSelector } from "react-redux";
+import useSocket from "../features/chat/useSocket";
+
 
 export default function Chat() {
-  const navigate = useNavigate();
-  const socket = useRef();
-  const [contacts, setContacts] = useState([]);
-  const [currentChat, setCurrentChat] = useState(undefined);
-  const [currentUser, setCurrentUser] = useState(undefined);
+  // const socket = useRef();
+  const socket = useSocket();
 
+
+  const currentUserId = localStorage.getItem("userId");
   useEffect(() => {
-    const run = async () => {
-      if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
-        navigate("/login");
+    if (currentUserId && socket) {
+      socket.on("connect", () => {
+        socket.emit("add-user", currentUserId);
+      });
+
+      socket.on("connect_error", (error) => {
+        console.log("Socket connection error:", error);
+      });
+
+      return () => {
+        socket.disconnect();
+        socket.off();
+      };
+    }
+  }, [currentUserId, socket]);
+  const { selectedChat: currentSelected } = useSelector((state) => state.chat);
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 768) {
+        setShow(true)
       } else {
-        setCurrentUser(
-          await JSON.parse(
-            localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-          )
-        );
+        setShow(false)
       }
     }
-    run()
-  }, [navigate]);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  useEffect(() => {
-    if (currentUser) {
-      socket.current = io(host);
-      socket.current.emit("add-user", currentUser._id);
-    }
-  }, [currentUser]);
 
-  useEffect(() => {
-    const run = async () => {
-      if (currentUser) {
-        if (currentUser.isAvatarImageSet) {
-          const data = await axios.get(`${allUsersRoute}/${currentUser._id}`);
-          setContacts(data.data);
-        } else {
-          navigate("/setAvatar");
-        }
-      }
-    }
-    run()
-  }, [currentUser, navigate]);
-
-  const handleChatChange = (chat) => {
-    setCurrentChat(chat);
-  };
   return (
     <>
-      <Container>
+      <Cont>
         <div className="container">
-          <Contacts contacts={contacts} changeChat={handleChatChange} />
-          {currentChat === undefined ? (
-            <Welcome />
-          ) : (
-            <ChatContainer currentChat={currentChat} socket={socket} />
-          )}
+          {
+            !show ? (
+              <>
+                <Users />
+                <Container socket={socket} />
+              </>
+            ) : (
+              currentSelected === null ? (
+                <Users />
+              ) : (
+                <Container socket={socket} />
+              )
+            )
+          }
         </div>
-      </Container>
+      </Cont>
     </>
   );
 }
 
-const Container = styled.div`
+const Cont = styled.div`
   height: 100vh;
   width: 100vw;
   display: flex;
@@ -78,15 +78,31 @@ const Container = styled.div`
   justify-content: center;
   gap: 1rem;
   align-items: center;
-  background-color: #131324;
+  background-image: linear-gradient(
+  45deg,
+  hsl(240deg 100% 20%) 0%,
+  hsl(346deg 83% 51%) 100%,
+  hsl(55deg 100% 50%) 100%
+);
+
+
+
   .container {
     height: 85vh;
     width: 85vw;
-    background-color: #00000076;
+    background-color: #f4f4fa;
     display: grid;
     grid-template-columns: 25% 75%;
-    @media screen and (min-width: 720px) and (max-width: 1080px) {
-      grid-template-columns: 35% 65%;
+    box-shadow: 0.5rem 0.5rem 0.5rem #00000029;
+    border-radius: 1rem;
+    @media (max-width: 768px) {
+      grid-template-columns: 100%;
+      
+      height: 100vh;
+      width: 100vw;
+      border-radius: 0;
     }
+
+  
   }
 `;
